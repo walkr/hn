@@ -1,6 +1,6 @@
 hn
 =========
-read hacker news from the command line
+read HN from the command line
 
 
 ### Install
@@ -20,9 +20,15 @@ $ hncd
 
 # Use the cli interface
 $ hnctl
-ctl > top  # show top stories
-ctl > new  # show new stories
+ctl >
+ctl > ping              # ping HN site
+ctl > top               # show top stories
+ctl > new               # show new stories
+ctl > user pg           # show user <pg>
+ctl > help              # show help
+ctl > help user         # show help for command <user>
+ctl > quit
 
-# Or you can invoke the command directly
+# You can also invoke a command directly w/o the loop
 $ hnctl top
 ```
