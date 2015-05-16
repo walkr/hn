@@ -23,14 +23,18 @@ $ hncd
 # Use the cli interface
 $ hnctl
 ctl >
-ctl > ping              # ping HN site
 ctl > top               # show top stories
-ctl > open 1            # open story <1> in browser
 ctl > new               # show new stories
+ctl > ask               # show ask stories
+ctl > jobs              # show jobs stories
+ctl > show              # show "show hn" stories
+
+ctl > ping              # ping HN site
+ctl > open 1            # open story <1> in browser
 ctl > user pg           # show user <pg>
 ctl > help              # show help
 ctl > help user         # show help for command <user>
-ctl > quit
+ctl > quit              # quit
 
 # You can also invoke a command directly w/o the loop
 $ hnctl top
