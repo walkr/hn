@@ -36,3 +36,5 @@ ctl > quit
 $ hnctl top
 $ hnctl open 1
 ```
+
+MIT Licensed
