@@ -2,6 +2,8 @@ hn
 =========
 read HN from the command line
 
+![screenshot](http://i.imgur.com/xxWGfKu.png)
+
 
 ### Install
 
