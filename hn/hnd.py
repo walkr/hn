@@ -4,6 +4,7 @@ import requests
 import webbrowser
 
 from . import compat
+from . import reltime
 
 
 # Endpoints
@@ -37,17 +38,16 @@ class Commands(object):
 
     def show(self, index, storyid=None):
         """ Show story """
-        layout = """
+        layout = u"""
         {index:2n}. {title} - ({hostname})
-            {score} points by {by} {time} | {descendants} comments
+            {score} points by {by} {time} ago | {descendants} comments
         """
         data = self.program.state.stories[storyid]
-        data['hostname'] = compat.urlparse(data['url']).hostname
         return layout.format(index=index, **data)
 
     def user(self, username='None'):
         """ Show a username """
-        layout = """
+        layout = u"""
         user: {id}
         created: {created}
         karma: {karma}
@@ -83,9 +83,18 @@ class HNWorker(oi.worker.Worker):
         self.program.state.stories = {}
 
     def put_stories(self, ids, limit):
+
+        def fix(data):
+            data['hostname'] = compat.urlparse(data['url']).hostname
+            data['time'] = reltime.since_now(int(data['time']))
+            data['descendants'] = data.get('descendants', 0)
+            data.pop('kids', None)
+            return data
+
+        # Fetch each story in the id list
         for i in ids[:limit]:
             story = requests.get(STORY.format(i)).json()
-            story.pop('kids', None)
+            story = fix(story)
             self.program.state.stories[i] = story
 
     def run(self):
