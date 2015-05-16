@@ -23,6 +23,7 @@ $ hnctl
 ctl >
 ctl > ping              # ping HN site
 ctl > top               # show top stories
+ctl > open 1            # open story <1> in browser
 ctl > new               # show new stories
 ctl > user pg           # show user <pg>
 ctl > help              # show help
@@ -31,4 +32,5 @@ ctl > quit
 
 # You can also invoke a command directly w/o the loop
 $ hnctl top
+$ hnctl open 1
 ```
