@@ -34,6 +34,7 @@ setup(
     long_description=long_description,
     install_requires=[
         'oi',
+        'requests',
     ],
     classifiers=[
         'License :: OSI Approved :: MIT License',
