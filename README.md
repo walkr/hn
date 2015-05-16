@@ -14,7 +14,7 @@ make install
 ### Usage
 
 1. Start the daemon
-2. Use the cli interface
+2. Use the command line interface
 
 ```shell
 # Start the daemon
