@@ -13,6 +13,9 @@ NEW = 'https://hacker-news.firebaseio.com/v0/newstories.json'
 TOP = 'https://hacker-news.firebaseio.com/v0/topstories.json'
 STORY = 'https://hacker-news.firebaseio.com/v0/item/{}.json'
 USER = 'https://hacker-news.firebaseio.com/v0/user/{}.json'
+ASK = 'https://hacker-news.firebaseio.com/v0/askstories.json'
+JOBS = 'https://hacker-news.firebaseio.com/v0/jobstories.json'
+SHOW = 'https://hacker-news.firebaseio.com/v0/showstories.json'
 
 
 class Commands(object):
@@ -27,14 +30,6 @@ class Commands(object):
         return ''.join([
             self.show(i+1, s) for i, s in enumerate(ids)
         ])
-
-    def top(self):
-        """ Show top stories """
-        return self.which('top')
-
-    def new(self):
-        """ Show new stories """
-        return self.which('new')
 
     def show(self, index, storyid=None):
         """ Show story """
@@ -78,38 +73,50 @@ class HNWorker(oi.worker.Worker):
         super(HNWorker, self).__init__(**kwargs)
         self.program = program
 
+        # Story indices per category
         self.program.state.top = []
         self.program.state.new = []
+        self.program.state.ask = []
+        self.program.state.jobs = []
+        self.program.state.show = []
+
+        # Stories collection
         self.program.state.stories = {}
 
-    def put_stories(self, ids, limit):
+    def put_stories(self, kind, ids, limit):
 
-        def fix(data):
-            data['hostname'] = compat.urlparse(data['url']).hostname
-            data['time'] = reltime.since_now(int(data['time']))
-            data['descendants'] = data.get('descendants', 0)
-            data.pop('kids', None)
-            return data
+        def fix(story, kind):
+            story['via'] = kind
+            story['hostname'] = compat.urlparse(story['url']).hostname
+            story['time'] = reltime.since_now(int(story['time']))
+            story['descendants'] = story.get('descendants', 0)
+            story.pop('kids', None)
+            return story
+
+        # Clear old stories
+        self.program.state.stories = {
+            key: story for key, story in self.program.state.stories.items()
+            if story['via'] != kind
+        }
 
         # Fetch each story in the id list
         for i in ids[:limit]:
             story = requests.get(STORY.format(i)).json()
-            story = fix(story)
+            story = fix(story, kind)
             self.program.state.stories[i] = story
 
     def run(self):
+        urls = {
+            'top': TOP, 'new': NEW, 'ask': ASK, 'jobs': JOBS, 'show': SHOW,
+        }
         while True:
 
+            # Get stories for each category
             limit = 15
-            # Get top stories
-            top = requests.get(TOP).json()
-            self.program.state.top = top[:limit]
-            self.put_stories(top, limit)
-
-            # Get new stories
-            new = requests.get(NEW).json()
-            self.program.state.new = new[:limit]
-            self.put_stories(new, limit)
+            for name, url in urls.items():
+                ids = requests.get(url).json()
+                setattr(self.program.state, name, ids[:limit])
+                self.put_stories(name, ids, limit)
 
             # Sleep for a little bit
             try:
@@ -124,8 +131,11 @@ def main():
     cmds = Commands(program)
 
     program.add_command('ping', cmds.ping, 'ping HN')
-    program.add_command('top', cmds.top, 'show top stories')
-    program.add_command('new', cmds.new, 'show new stories')
+    program.add_command('top', lambda: cmds.which('top'), 'show top stories')
+    program.add_command('new', lambda: cmds.which('new'), 'show new stories')
+    program.add_command('ask', lambda: cmds.which('ask'), 'show ask stories')
+    program.add_command('jobs', lambda: cmds.which('jobs'), 'show jobs stories')
+    program.add_command('show', lambda: cmds.which('show'), 'show(show) stories')
     program.add_command('user', cmds.user, 'show user profile')
     program.add_command('open', cmds.open, 'show in browser')
     program.workers.append(HNWorker(program))
