@@ -1,4 +1,5 @@
-# Relative time
+# A module for transforming timestamps to relative time
+
 import time
 from collections import OrderedDict
 
