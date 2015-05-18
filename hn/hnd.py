@@ -1,4 +1,4 @@
-# Daemon program which does most of the work
+# Daemon program fetching HN stories
 
 import os
 import oi
@@ -9,6 +9,19 @@ from .workers import WatchWorker
 from .workers import NotifyWorker
 
 
+def notify_linux(story):
+    """ Show notification on linux """
+    pass
+
+
+def notify_osx(story):
+    """ Show notification on OS X """
+    cmd = u'terminal-notifier -title "New HN Story" -message "{}" -open {}'
+    cmd = cmd.format(story['title'], story['url'])
+    code = os.system(cmd)
+    assert code == 0
+
+
 def main():
     program = oi.Program('my program', 'ipc:///tmp/oi-qixdlkfuep.sock')
 
@@ -17,13 +30,7 @@ def main():
 
     # Show notifications when new stories are found
     notify_worker = NotifyWorker(program)
-    notify_worker.do(lambda story: os.system(
-        'terminal-notifier -title "{}" -message "{}" -open {}'.format(
-            title='New story',
-            message=u'{}'.format(story['title']),
-            url=story['url']
-        )
-    ))
+    notify_worker.do(lambda story: notify_osx(story))
 
     # Add workers to our program
     program.workers.append(hn_worker)

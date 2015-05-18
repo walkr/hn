@@ -5,11 +5,14 @@ import re
 import time
 import functools
 import requests
+import logging
 
 from . import compat
 from . import reltime
 from . import endpoints
 from . import defaults
+
+logging.getLogger("requests").setLevel(logging.WARNING)
 
 
 class BaseWorker(oi.worker.Worker):
@@ -75,6 +78,7 @@ class HNWorker(BaseWorker):
             # Get stories for each category and store them
             limit = 15
             for name, url in urls.items():
+                logging.debug('Getting stories for section {}'.format(name))
                 ids = requests.get(url).json()
                 setattr(self.program.state, name, ids[:limit])
                 self.put_stories(name, ids, limit)
@@ -84,7 +88,9 @@ class HNWorker(BaseWorker):
                 interval = int(
                     self.program.config.getint('settings', 'interval'))
             except:
-                interval = defaults['settings']['interval']
+                interval = defaults.DEFAULTS['settings']['interval']
+
+            logging.debug('HNWorker will sleep for {}s'.format(interval))
             time.sleep(interval)
 
 
@@ -92,11 +98,44 @@ class WatchWorker(BaseWorker):
     """ Watch for certain patterns in the data then put those stories
     in the watch_queue so other threads can to do something with them """
 
+    class Watch(object):
+        """ An object to keep track of new and seen stories """
+        NOTIFIED_LIMIT = 1000
+
+        def __init__(self):
+            self.notified = []  # stories for which notifis were trigere
+            self.new_queue = compat.Queue()
+
+        def get(self):
+            """ Get a story from the queue """
+            return self.new_queue.get()
+
+        def put(self, story):
+            """ Add a story to the queue only if a notification has not
+            been sent for it """
+
+            if story['id'] not in self.notified:
+                return self.new_queue.put(story)
+
+        def mark_notified(self, story):
+            """ Mark that a notifcation was sent for this story """
+
+            if story['id'] not in self.notified:
+                self.notified.append(story['id'])
+
+            # Don't overgrow list
+            if len(self.notified) > self.NOTIFIED_LIMIT:
+                self.notified = self.notified[-self.NOTIFIED_LIMIT:]
+
+        def was_notified(self, story):
+            """ Was a notifcation already sent for this story """
+            return story['id'] in self.notified
+
+    # --------
+
     def __init__(self, program, **kwargs):
         super(WatchWorker, self).__init__(program, **kwargs)
-
-        self.program.state.watch_seen_queue = compat.Queue()  # stories seen
-        self.program.state.watch_new_queue = compat.Queue()  # new stories
+        self.program.state.watch = self.Watch()
 
     def run(self):
 
@@ -104,13 +143,14 @@ class WatchWorker(BaseWorker):
         try:
             watch = self.program.config.getboolean('watch.worker', 'watch')
         except:
-            watch = defaults['watch.worker']['watch']
+            watch = defaults.DEFAULTS['watch.worker']['watch']
 
         if not watch:
+            logging.debug('Nothing to watch. Exit thread.')
             return
 
         while True:
-
+            logging.debug('WatchWorker will look for patterns')
             # Trim notifications
             if len(self.program.state.notified) > 300:
                 self.program.state.notified = self.program.state.notified[-300:]
@@ -119,20 +159,27 @@ class WatchWorker(BaseWorker):
             try:
                 patterns = self.program.config.get('watch.worker', 'regexes')
             except:
-                patterns = defaults['watch.worker']['regexes']
+                patterns = defaults.DEFAULTS['watch.worker']['regexes']
 
             patterns = [p.strip() for p in patterns.split(',')]
             patterns = [p for p in patterns if p]
+            logging.debug('Watch patterns: {}'.format(patterns))
 
             # When a pattern is found, add the story to the watch_new_queue
             for pat in patterns:
                 for story in self.program.state.stories.values():
+
+                    if self.program.state.watch.was_notified(story):
+                        continue
+
                     if re.search(pat, story['title'], flags=re.I):
-                        if story not in self.program.state.watch_seen_queue:
-                            self.program.state.watch_new_queue.add(story)
+                        logging.error('Found watch pattern {}'.format(pat))
+                        self.program.state.watch.put(story)
 
             # Wait a little
-            time.sleep(10)
+            interval = 5
+            logging.error('WatchWorker will sleep for {}s'.format(interval))
+            time.sleep(interval)
 
 
 class NotifyWorker(BaseWorker):
@@ -151,8 +198,8 @@ class NotifyWorker(BaseWorker):
             def wrapper(*args, **kwargs):
                 try:
                     return fun(*args, **kwargs)
-                except:
-                    pass
+                except Exception as e:
+                    logging.error('NotifyWorker.do error: {}'.format(e))
             return wrapper
 
         self.registered.append(make_new_fun(function))
@@ -163,17 +210,25 @@ class NotifyWorker(BaseWorker):
         try:
             notify = self.program.config.getboolean('notify.worker', 'notify')
         except:
-            notify = defaults['notify.worker']['notify']
+            notify = defaults.DEFAULTS['notify.worker']['notify']
 
         if not notify:
+            logging.debug('No notify. Exit thread.')
             return
 
         while True:
+            logging.debug('Getting a new story from queue')
 
             # Take new stories, mark them as seen and do some work
-            for story in self.program.state.watch_new_queue:
-                self.program.state.watch_seen_queue.add(story)
-                for function in self.registered:
-                        function(story)
+            story = self.program.state.watch.get()
+            self.program.state.watch.mark_notified(story)
 
-            time.sleep(3)
+            logging.debug('Do notifications for story {}'.format(story['id']))
+
+            for function in self.registered:
+                function(story)
+
+            # Wait a little
+            interval = 5
+            logging.error('NotifyWorker will sleep for {}s'.format(interval))
+            time.sleep(interval)

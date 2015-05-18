@@ -10,6 +10,6 @@ DEFAULTS = {
         'regexex': ''
     },
     'notify.worker': {
-        'notity': False
+        'notify': False
     }
 }
