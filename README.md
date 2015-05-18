@@ -2,7 +2,7 @@ hn
 =========
 read HN from the command line
 
-![travis-ci](https://travis-ci.org/walkr/hn.svg)
+[![Build Status](https://travis-ci.org/walkr/hn.svg)](https://travis-ci.org/walkr/hn)
 
 ![screenshot](http://i.imgur.com/xxWGfKu.png)
 
