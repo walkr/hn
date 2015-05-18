@@ -4,11 +4,15 @@ read HN from the command line
 
 ![screenshot](http://i.imgur.com/xxWGfKu.png)
 
+**Features**
+
+* Modular, "daemon" + ctl
+* Daemon can watch for regexes in stories and trigger notifications (currently broken on OSX) or do any other type of work
 
 ### Install
 
 ```shell
-make install
+$ make install
 ```
 
 ### Usage
@@ -18,9 +22,12 @@ make install
 
 ```shell
 # Start the daemon
-$ hncd
+$ hnd
 
-# Use the cli interface
+# OR start the daemon with a config file (see example config file)
+$ hnd --config hn/hn.conf
+
+# Use the command line interface
 $ hnctl
 ctl >
 ctl > top               # show top stories
