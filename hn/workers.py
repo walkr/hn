@@ -173,12 +173,12 @@ class WatchWorker(BaseWorker):
                         continue
 
                     if re.search(pat, story['title'], flags=re.I):
-                        logging.error('Found watch pattern {}'.format(pat))
+                        logging.debug('Found watch pattern {}'.format(pat))
                         self.program.state.watch.put(story)
 
             # Wait a little
             interval = 5
-            logging.error('WatchWorker will sleep for {}s'.format(interval))
+            logging.debug('WatchWorker will sleep for {}s'.format(interval))
             time.sleep(interval)
 
 
@@ -199,7 +199,7 @@ class NotifyWorker(BaseWorker):
                 try:
                     return fun(*args, **kwargs)
                 except Exception as e:
-                    logging.error('NotifyWorker.do error: {}'.format(e))
+                    logging.debug('NotifyWorker.do error: {}'.format(e))
             return wrapper
 
         self.registered.append(make_new_fun(function))
@@ -230,5 +230,5 @@ class NotifyWorker(BaseWorker):
 
             # Wait a little
             interval = 5
-            logging.error('NotifyWorker will sleep for {}s'.format(interval))
+            logging.debug('NotifyWorker will sleep for {}s'.format(interval))
             time.sleep(interval)
