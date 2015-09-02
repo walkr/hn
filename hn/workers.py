@@ -45,7 +45,7 @@ class HNWorker(BaseWorker):
 
         def enhance(story, kind):
             story['via'] = kind
-            story['hostname'] = compat.urlparse(story['url']).hostname
+            story['hostname'] = compat.urlparse(story.get('url', '')).hostname
             story['time'] = reltime.since_now(int(story['time']))
             story['descendants'] = story.get('descendants', 0)
             story.pop('kids', None)

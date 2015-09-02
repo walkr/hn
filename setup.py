@@ -34,6 +34,7 @@ setup(
     long_description=long_description,
     install_requires=[
         'oi',
+        'nose',
         'requests',
     ],
     classifiers=[
